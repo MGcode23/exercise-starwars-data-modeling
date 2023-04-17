@@ -1,31 +1,77 @@
+import enum
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy import Column, ForeignKey, Integer, String, Enum, Table
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from eralchemy2 import render_er
 
 Base = declarative_base()
 
-class Person(Base):
-    __tablename__ = 'person'
-    # Here we define columns for the table person
-    # Notice that each column is also a normal Python instance attribute.
+class User(Base):
+    __tablename__ = 'user'
     id = Column(Integer, primary_key=True)
-    name = Column(String(250), nullable=False)
+    username = Column(String(50), nullable=False)
+    email = Column(String(100), nullable=False, unique=True)
+    password = Column(String(50), nullable=False)
+    favorites = relationship("Favorite", backref="user", lazy=True)
 
-class Address(Base):
-    __tablename__ = 'address'
-    # Here we define columns for the table address.
-    # Notice that each column is also a normal Python instance attribute.
+class Planet(Base):
+    __tablename__ = 'planet'
     id = Column(Integer, primary_key=True)
-    street_name = Column(String(250))
-    street_number = Column(String(250))
-    post_code = Column(String(250), nullable=False)
-    person_id = Column(Integer, ForeignKey('person.id'))
-    person = relationship(Person)
+    name = Column(String(50), nullable=False)
+    diameter = Column(String(50), nullable=False)
+    climate = Column(String(50), nullable=False)
+    population = Column(String(50), nullable=False)
+    favorite_planets = relationship("Favorite", back_populates="planet")
+    characters = relationship("Character", secondary="character_planet_association")
+    starships = relationship("Starship", secondary="starship_planet_association")
 
-    def to_dict(self):
+class Character(Base):
+    __tablename__="character"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), nullable=False)
+    gender = Column(String(50), nullable=False)
+    height = Column(String(50), nullable=False)
+    mass = Column(String(50), nullable=False)
+    hair_color = Column(String(50), nullable=False)
+    eye_color = Column(String(50), nullable=False)
+    favorite_characters = relationship("Favorite", back_populates="character")
+    planets = relationship("Planet", secondary="character_planet_association")
+
+class Starship(Base):
+    __tablename__="starship"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), nullable=False)
+    model = Column(String(50), nullable=False)
+    length = Column(String(50), nullable=False)
+    crew = Column(String(50), nullable=False)
+    favorite_starships = relationship("Favorite", back_populates="starship")
+    planets = relationship("Planet", secondary="starship_planet_association")
+
+character_planet_association = Table('character_planet_association', Base.metadata,
+    Column('character_id', Integer, ForeignKey('character.id')),
+    Column('planet_id', Integer, ForeignKey('planet.id'))
+)
+
+starship_planet_association = Table('starship_planet_association', Base.metadata,
+    Column('starship_id', Integer, ForeignKey('starship.id')),
+    Column('planet_id', Integer, ForeignKey('planet.id'))
+)
+
+class Favorite(Base):
+    __tablename__ = "favorite"
+    id = Column(Integer,primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'))
+    planet_id = Column(Integer, ForeignKey('planet.id'))
+    character_id = Column(Integer, ForeignKey('character.id'))
+    starship_id = Column(Integer, ForeignKey('starship.id'))
+    planet = relationship("Planet", back_populates="favorite_planets")
+    character = relationship("Character", back_populates="favorite_characters")
+    starship = relationship("Starship", back_populates="favorite_starships")
+    
+    def add_favorites():
         return {}
 
 ## Draw from SQLAlchemy base
